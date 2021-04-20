@@ -290,7 +290,7 @@ void CCharacter::HandleNinja()
 void CCharacter::DoWeaponSwitch()
 {
 	// make sure we can switch
-	if(m_ReloadTimer != 0 || m_QueuedWeapon == -1 || m_aWeapons[WEAPON_NINJA].m_Got || !m_aWeapons[m_QueuedWeapon].m_Got)
+	if(m_QueuedWeapon == -1 || m_aWeapons[WEAPON_NINJA].m_Got || !m_aWeapons[m_QueuedWeapon].m_Got)
 		return;
 
 	// switch Weapon
@@ -346,7 +346,7 @@ void CCharacter::HandleWeaponSwitch()
 
 void CCharacter::FireWeapon()
 {
-	if(m_ReloadTimer != 0)
+	if(m_ReloadTimer[m_Core.m_ActiveWeapon] != 0)
 	{
 		if(m_LatestInput.m_Fire & 1)
 		{
@@ -398,7 +398,7 @@ void CCharacter::FireWeapon()
 	if(!m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo)
 	{
 		/*// 125ms is a magical limit of how fast a human can click
-		m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
+		m_ReloadTimer[m_Core.m_ActiveWeapon] = 125 * Server()->TickSpeed() / 1000;
 		GameServer()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO);*/
 		return;
 	}
@@ -460,7 +460,7 @@ void CCharacter::FireWeapon()
 
 		// if we Hit anything, we have to wait for the reload
 		if(Hits)
-			m_ReloadTimer = Server()->TickSpeed() / 3;
+			m_ReloadTimer[m_Core.m_ActiveWeapon] = Server()->TickSpeed() / 3;
 	}
 	break;
 
@@ -612,14 +612,14 @@ void CCharacter::FireWeapon()
 	/*if(m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo > 0) // -1 == unlimited
 		m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo--;*/
 
-	if(!m_ReloadTimer)
+	if(!m_ReloadTimer[m_Core.m_ActiveWeapon])
 	{
 		float FireDelay;
 		if(!m_TuneZone)
 			GameServer()->Tuning()->Get(38 + m_Core.m_ActiveWeapon, &FireDelay);
 		else
 			GameServer()->TuningList()[m_TuneZone].Get(38 + m_Core.m_ActiveWeapon, &FireDelay);
-		m_ReloadTimer = FireDelay * Server()->TickSpeed() / 1000;
+		m_ReloadTimer[m_Core.m_ActiveWeapon] = FireDelay * Server()->TickSpeed() / 1000;
 	}
 }
 
@@ -633,9 +633,9 @@ void CCharacter::HandleWeapons()
 		m_PainSoundTimer--;
 
 	// check reload timer
-	if(m_ReloadTimer)
+	if(m_ReloadTimer[m_Core.m_ActiveWeapon])
 	{
-		m_ReloadTimer--;
+		m_ReloadTimer[m_Core.m_ActiveWeapon]--;
 		return;
 	}
 
@@ -647,7 +647,7 @@ void CCharacter::HandleWeapons()
 	if(AmmoRegenTime)
 	{
 		// If equipped and not active, regen ammo?
-		if (m_ReloadTimer <= 0)
+		if (m_ReloadTimer[m_Core.m_ActiveWeapon] <= 0)
 		{
 			if (m_aWeapons[m_Core.m_ActiveWeapon].m_AmmoRegenStart < 0)
 				m_aWeapons[m_Core.m_ActiveWeapon].m_AmmoRegenStart = Server()->Tick();
@@ -807,11 +807,13 @@ void CCharacter::TickDefered()
 		m_ReckoningCore.Init(&TempWorld, GameServer()->Collision(), &Teams()->m_Core, &((CGameControllerDDRace *)GameServer()->m_pController)->m_TeleOuts);
 		m_ReckoningCore.m_Id = m_pPlayer->GetCID();
 		m_ReckoningCore.Tick(false);
+		m_ReckoningCore.PostTick();
 		m_ReckoningCore.Move();
 		m_ReckoningCore.Quantize();
 	}
 
 	//lastsentcore
+	m_Core.PostTick();
 	vec2 StartPos = m_Core.m_Pos;
 	vec2 StartVel = m_Core.m_Vel;
 	bool StuckBefore = GameServer()->Collision()->TestBox(m_Core.m_Pos, vec2(28.0f, 28.0f));

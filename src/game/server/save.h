@@ -102,7 +102,7 @@ private:
 	int m_InputFire;
 	int m_InputHook;
 
-	int m_ReloadTimer;
+	int m_ReloadTimer[NUM_WEAPONS];
 
 	char m_aGameUuid[UUID_MAXSTRSIZE];
 };
